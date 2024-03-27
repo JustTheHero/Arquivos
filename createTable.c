@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
     }
     Jogador jogador;
     int aux;
-    while ((aux = fscanf(entrada, "%[^,],%d,%d,%s,%s,%s\n", jogador.id, &jogador.idade, &jogador.nomeJogador, &jogador.nacionalidade, &jogador.nomeClube))!= EOF ) {
+    while ((aux = fscanf(entrada, "%[^,],%d,%d,%s,%s,%s\n", jogador->id, &jogador->idade, &jogador->nomeJogador, &jogador->nacionalidade, &jogador->nomeClube))!= EOF ) {
         if(aux != 5){
             printf("Falha no processamento do arquivo.\n");
             fclose(entrada);
