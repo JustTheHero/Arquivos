@@ -197,7 +197,7 @@ void select_from(char *arqbin){
                     printf("Nacionalidade: SEM DADO\n");
                 else{
                     printf("Nacionalidade: ");
-                    exibirString(registro.nacionalidade, registro.tamNacionalidade);
+                    exibirString(registro.nacionalidade, registro.tamNacionalidade); //MODULARIZAR PRINT INFORMACOES
                 }
                 if(registro.tamNomeClube == 0)
                     printf("Nome do Clube: SEM DADO\n");
