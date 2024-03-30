@@ -295,6 +295,7 @@ void select_where(char *arqbin, int n){//codar interação com verificacao de re
                 free(registro.nomeClube);
             }
             else{
+		fseek(arquivo, -1, SEEK_CUR);
                 fseek(arquivo, registro.tamanhoRegistro, SEEK_CUR);
             }
     fclose(arquivo);
