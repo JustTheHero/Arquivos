@@ -3,6 +3,9 @@
 #include <string.h>
 //#include "funcoes_fornecidas.h"
 
+//Trabalho 1 - Organização de Arquivos
+//Alunos: Gabriel Hyppolito - 14571810, Juan Marques Jordão - 14758742
+
 typedef struct{
     char status;
     long int topo, proxByteOffset;
@@ -38,7 +41,6 @@ void abreBinRead(char *nomeArquivo, FILE **arquivo){
         return 1;
     }
 }
-
 
 void binarioNaTela(char *nomeArquivoBinario) { /* Você não precisa entender o código dessa função. */
 
@@ -134,6 +136,18 @@ void escreverCabecalho(Cabecalho *cabecalho, FILE *arquivo){
     fwrite(&cabecalho->nroRegRem, sizeof(int), 1, arquivo);
 }
 
+void lerRegistro(Registro *registro, FILE *arquivo){
+    fread(&registro->tamanhoRegistro, sizeof(int), 1, arquivo);
+    fread(&registro->prox, sizeof(long int), 1, arquivo);
+    fread(&registro->id, sizeof(int), 1, arquivo);
+    fread(&registro->idade, sizeof(int), 1, arquivo);
+    fread(&registro->tamNomeJog, sizeof(int), 1, arquivo);
+    registro->nomeJogador = lerString(arquivo, registro->tamNomeJog);
+    fread(&registro->tamNacionalidade, sizeof(int), 1, arquivo);
+    registro->nacionalidade = lerString(arquivo, registro->tamNacionalidade);
+    fread(&registro->tamNomeClube, sizeof(int), 1, arquivo);
+    registro->nomeClube = lerString(arquivo, registro->tamNomeClube);
+}
 
 void createTable(char *entrada, char *saida){
 
@@ -169,48 +183,30 @@ void select_from(char *arqbin){
         int nroRegArq, nroRegRem;
         fread(&nroRegArq, sizeof(int), 1, arquivo);
         fread(&nroRegRem, sizeof(int), 1, arquivo);
+        
         if(nroRegArq == 0){
             printf("Registro inexistente.\n");
+            fclose(arquivo);
             return 0;
-        }   
+        }
+
         Registro registro;//fazer casos de erro, int -1 se for int, $ se for string, etc
         for (int i = 0; i < nroRegArq+nroRegRem; i++) {
             fread(&registro.removido, sizeof(char), 1, arquivo);
             if(registro.removido == '0'){
-                fread(&registro.tamanhoRegistro, sizeof(int), 1, arquivo);
-                fread(&registro.prox, sizeof(long int), 1, arquivo);
-                fread(&registro.id, sizeof(int), 1, arquivo);
-                fread(&registro.idade, sizeof(int), 1, arquivo);
-                fread(&registro.tamNomeJog, sizeof(int), 1, arquivo);       //MODULARIZAR FREADS FUNCAO - copiar plano b
-                registro.nomeJogador = lerString(arquivo, registro.tamNomeJog);
-                fread(&registro.tamNacionalidade, sizeof(int), 1, arquivo);
-                registro.nacionalidade = lerString(arquivo, registro.tamNacionalidade);
-                fread(&registro.tamNomeClube, sizeof(int), 1, arquivo);
-                registro.nomeClube = lerString(arquivo, registro.tamNomeClube);
-                if(registro.tamNomeJog == 0)
-                    printf("Nome do Jogador: SEM DADO\n");
-                else{
-                    printf("Nome do Jogador: ");
-                    exibirString(registro.nomeJogador, registro.tamNomeJog);
-                }
-                if(registro.tamNacionalidade == 0)
-                    printf("Nacionalidade: SEM DADO\n");
-                else{
-                    printf("Nacionalidade: ");
-                    exibirString(registro.nacionalidade, registro.tamNacionalidade); //MODULARIZAR PRINT INFORMACOES
-                }
-                if(registro.tamNomeClube == 0)
-                    printf("Nome do Clube: SEM DADO\n");
-                else{
-                    printf("Nome do Clube: ");
-                    exibirString(registro.nomeClube, registro.tamNomeClube);
-                }
+                lerRegistro(&registro, arquivo);
+                
+                printf("Nome do Jogador: %s\n", registro.tamNomeJog ? registro.nomeJogador : "SEM DADO");
+                printf("Nacionalidade: %s\n", registro.tamNacionalidade ? registro.nacionalidade : "SEM DADO");
+                printf("Nome do Clube: %s\n", registro.tamNomeClube ? registro.nomeClube : "SEM DADO");
                 printf("\n");
+                
                 free(registro.nomeJogador);
                 free(registro.nacionalidade);
                 free(registro.nomeClube);
             }
             else{
+                fseek(arquivo, -1, SEEK_CUR);
                 fseek(arquivo, registro.tamanhoRegistro, SEEK_CUR);
             }
     }
@@ -275,22 +271,14 @@ void select_where(char *arqbin, int n){//codar interação com verificacao de re
         fread(&nroRegRem, sizeof(int), 1, arquivo);
         if(nroRegArq == 0){
             printf("Registro inexistente.\n");
+            fclose(arquivo);
             return 0;
         }   
         Registro registro;
         for (int i = 0; i < nroRegArq+nroRegRem; i++) {
             fread(&registro.removido, sizeof(char), 1, arquivo);
             if(registro.removido == '0'){
-                fread(&registro.tamanhoRegistro, sizeof(int), 1, arquivo);
-                fread(&registro.prox, sizeof(long int), 1, arquivo);
-                fread(&registro.id, sizeof(int), 1, arquivo);
-                fread(&registro.idade, sizeof(int), 1, arquivo);
-                fread(&registro.tamNomeJog, sizeof(int), 1, arquivo);
-                registro.nomeJogador = lerString(arquivo, registro.tamNomeJog);
-                fread(&registro.tamNacionalidade, sizeof(int), 1, arquivo);
-                registro.nacionalidade = lerString(arquivo, registro.tamNacionalidade);
-                fread(&registro.tamNomeClube, sizeof(int), 1, arquivo);
-                registro.nomeClube = lerString(arquivo, registro.tamNomeClube);
+                lerRegistro(&registro, arquivo);
                 if (registro.id == n) {
                     printf("ID: %d\n", registro.id);
                     printf("Idade: %d\n", registro.idade);
