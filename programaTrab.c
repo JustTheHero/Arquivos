@@ -11,7 +11,6 @@ typedef struct{
     long int topo, proxByteOffset;
     int nroRegArq, nroRegRem;
 }Cabecalho;
-
 typedef struct{
     int id, idade, tamanhoRegistro, tamNomeJog, tamNacionalidade, tamNomeClube;
     long int prox;
@@ -149,6 +148,60 @@ void lerRegistro(Registro *registro, FILE *arquivo){
     registro->nomeClube = lerString(arquivo, registro->tamNomeClube);
 }
 
+void escreverRegistro(Registro *registro, FILE *arquivo){
+    fwrite(&registro->removido, sizeof(char), 1, arquivo);
+    fwrite(&registro->tamanhoRegistro, sizeof(int), 1, arquivo);
+    fwrite(&registro->prox, sizeof(long int), 1, arquivo);
+    fwrite(&registro->id, sizeof(int), 1, arquivo);
+    fwrite(&registro->idade, sizeof(int), 1, arquivo);
+    fwrite(&registro->tamNomeJog, sizeof(int), 1, arquivo);
+    fwrite(registro->nomeJogador, registro->tamNomeJog, 1, arquivo);
+    fwrite(&registro->tamNacionalidade, sizeof(int), 1, arquivo);
+    fwrite(registro->nacionalidade, registro->tamNacionalidade, 1, arquivo);
+    fwrite(&registro->tamNomeClube, sizeof(int), 1, arquivo);
+    fwrite(registro->nomeClube, registro->tamNomeClube, 1, arquivo);
+}
+
+char *leCampo(char *linha, char *tempStr, int *i){
+    int j=0;
+    tempStr = NULL;
+    while(linha[*i] != ','){
+        tempStr[j] = linha[*i];
+        j++;
+        (*i)++;
+    }
+    (*i)++;
+    return tempStr;
+}
+
+char *leUltimoCampo(char *linha, char *tempStr, int *i){
+    int j=0;
+    tempStr = NULL;
+    while(linha[*i] != '\0'){
+        tempStr[j] = linha[*i];
+        j++;
+        (*i)++;
+    }
+    return tempStr;
+}
+
+int preencheCampoFixo(char chave){
+    if(chave == NULL){
+        return -1;
+    }else{
+        return atoi(chave);
+    }
+}
+
+int tamanhoString(char *str){
+    if(str == NULL){
+        return 0;
+    }else{
+        return strlen(str);
+    }
+
+}
+
 void createTable(char *entrada, char *saida){
 
     FILE *arquivoEntrada;
@@ -161,15 +214,70 @@ void createTable(char *entrada, char *saida){
     inicializarCabecalho(&cabecalho);
     escreverCabecalho(&cabecalho, saida);
 
-    //primeiro registro = descricao de cada campo (pular?)
-    //campos sem dados/nulos = preencher com lixo? ($)
-    //ate quando ler do arquivo base?
-    //lidar com tamanhos strings 
+    char buffer[45];
+    fread(buffer, 45, 1, arquivoEntrada);
+    
+    Registro registro;
+
+    while(!feof(arquivoEntrada)){
+        
+        char c, linha[100], tempStr[30];
+        int i=0, j=0;
+        while((c = fgetc(arquivoEntrada)) != '\n'){
+            linha[i] = c;
+            i++;
+        }
+        linha[i] = '\0';
+        i=0;
+
+        //inicializar registro
+        
+        registro.id = preencheCampoFixo(leCampo(linha, tempStr, &i));
+        registro.idade = preencheCampoFixo(leCampo(linha, tempStr, &i));
+        
+        registro.tamNomeJog = tamanhoString(leCampo(linha, tempStr, &i));
+        if(registro.tamNomeJog != 0){
+            registro.nomeJogador = (char *)malloc(registro.tamNomeJog * sizeof(char));
+            strcpy(registro.nomeJogador, tempStr);
+            free(tempStr);
+        }else{
+            registro.nomeJogador = NULL;
+        }
+        
+        registro.tamNacionalidade = tamanhoString(leCampo(linha, tempStr, &i));
+        if(registro.tamNacionalidade != 0){
+            registro.nacionalidade = (char *)malloc(registro.tamNacionalidade * sizeof(char));
+            strcpy(registro.nacionalidade, tempStr);
+            free(tempStr);
+        }else{
+            registro.nacionalidade = NULL;
+        }
+
+        registro.tamNomeClube = tamanhoString(leUltimoCampo(linha, tempStr, &i));
+        if(registro.tamNomeClube != 0){
+            registro.nomeClube = (char *)malloc(registro.tamNomeClube * sizeof(char));
+            strcpy(registro.nomeClube, tempStr);
+            free(tempStr);
+        }else{
+            registro.nomeClube = NULL;
+        }
+        
+        registro.removido = '0';
+        registro.prox = -1;
+        registro.tamanhoRegistro = sizeof(int)*6 + sizeof(long int) + sizeof(char)*(registro.tamNomeJog + 
+                                    registro.tamNacionalidade + registro.tamNomeClube + 1);
+
+        escreverRegistro(&registro, arquivoSaida);
+        cabecalho.nroRegArq++;
+    }
 
     //atualizacao do status do cabecalho
+    //atualizar nroRegArq
     cabecalho.status = '1';
     fseek(arquivoSaida, 0, SEEK_SET);
     fwrite(&cabecalho.status, sizeof(char), 1, arquivoSaida);
+    fseek(arquivoSaida, 16, SEEK_SET);
+    fwrite(&cabecalho.nroRegArq, sizeof(int), 1, arquivoSaida);
 
     fclose(arquivoEntrada);
     fclose(arquivoSaida);
@@ -331,4 +439,3 @@ int main(int argc, char* argv[]){
         
     return 0;
 }
-
