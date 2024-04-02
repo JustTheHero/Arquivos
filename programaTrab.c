@@ -322,52 +322,16 @@ void select_from(char *arqbin){
 }
 
 
-int verificarRegistro(FILE *arquivo, int n) {
-    Registro registro;//codar caso de mais de uma chave de busca
-    int todosCamposAtendidos = 1;
-    for (int i = 0; i < n; i++) {
-        int campoAtendido = 0;
-        char nomeCampo[100];
-        fscanf(arquivo, "%s", nomeCampo);
-        if (strcmp(nomeCampo, "nomeJogador") == 0 || strcmp(nomeCampo, "nacionalidade") == 0 || strcmp(nomeCampo, "nomeClube") == 0) {
-            char valorCampo[100];
-            scan_quote_string(valorCampo);
-            if (strcmp(nomeCampo, "nomeJogador") == 0) {
-                if (registro.tamNomeJog != -1 && strcmp(registro.nomeJogador, valorCampo) == 0) {
-                    campoAtendido = 1;
-                }
-            } else if (strcmp(nomeCampo, "nacionalidade") == 0) {
-                if (registro.tamNacionalidade != -1 && strcmp(registro.nacionalidade, valorCampo) == 0) {
-                    campoAtendido = 1;
-                }
-            } else if (strcmp(nomeCampo, "nomeClube") == 0) {
-                if (registro.tamNomeClube != -1 && strcmp(registro.nomeClube, valorCampo) == 0) {
-                    campoAtendido = 1;
-                }
-            }
-        } else {
-            char valorCampo[100];
-            fscanf(arquivo, "%s", valorCampo);
-            if (strcmp(nomeCampo, "id") == 0) {
-                int valorCampoInt = atoi(valorCampo);
-                if (registro.id == valorCampoInt) {
-                    campoAtendido = 1;
-                }
-            } else if (strcmp(nomeCampo, "idade") == 0) {
-                int valorCampoInt = atoi(valorCampo);
-                if (registro.idade == valorCampoInt) {
-                    campoAtendido = 1;
-                }
-            } 
-        }
-        if (!campoAtendido) {
-            todosCamposAtendidos = 0;
-            break;
-        }
+int verificarRegistro(struct Registro *registro, int id, int idade, char *nomeJogador, char *nacionalidade, char *nomeClube) {
+    if ((id == -1 || registro.id == id) &&
+        (idade == -1 || registro.idade == idade) &&
+        (strcmp(nomeJogador, "") == 0 || strcmp(registro.nomeJogador, nomeJogador) == 0) &&
+        (strcmp(nacionalidade, "") == 0 || strcmp(registro.nacionalidade, nacionalidade) == 0) &&
+        (strcmp(nomeClube, "") == 0 || strcmp(registro.nomeClube, nomeClube) == 0)) {
+        return 1;  
     }
-    return todosCamposAtendidos;
+    return 0;  
 }
-
 void select_where(char *arqbin, int n){//codar interação com verificacao de registros
 
         FILE *arquivo;
@@ -383,33 +347,43 @@ void select_where(char *arqbin, int n){//codar interação com verificacao de re
             return 0;
         }   
         Registro registro;
-        for (int i = 0; i < nroRegArq+nroRegRem; i++) {
-            fread(&registro.removido, sizeof(char), 1, arquivo);
-            if(registro.removido == '0'){
-                lerRegistro(&registro, arquivo);
-                if (registro.id == n) {
-                    printf("ID: %d\n", registro.id);
-                    printf("Idade: %d\n", registro.idade);
-                    printf("Nome do Jogador: ");
-                    exibirString(registro.nomeJogador, registro.tamNomeJog);
-                    printf("Nacionalidade: ");
-                    exibirString(registro.nacionalidade, registro.tamNacionalidade);
-                    printf("Nome do Clube: ");
-                    exibirString(registro.nomeClube, registro.tamNomeClube);
-                    printf("\n");
-                }
-                free(registro.nomeJogador);
-                free(registro.nacionalidade);
-                free(registro.nomeClube);
+        for (int i = 0; i < n; i++) {
+        int id = -1, idade = -1;
+        char nomeJogador[50] = "", nacionalidade[50] = "", nomeClube[50] = "";
+        char busca[255];
+        fgets(busca, 255, stdin);
+        char *token = strtok(busca, " \n");
+        while (token != NULL) {
+            if (strcmp(token, "id") == 0) {
+                token = strtok(NULL, " \n");
+                id = atoi(token);
+            } else if (strcmp(token, "idade") == 0) {
+                token = strtok(NULL, " \n");
+                idade = atoi(token);
+            } else if (strcmp(token, "nomeJogador") == 0) {
+                token = strtok(NULL, " \n");
+                strcpy(nomeJogador, token);
+            } else if (strcmp(token, "nacionalidade") == 0) {
+                token = strtok(NULL, " \n");
+                strcpy(nacionalidade, token);
+            } else if (strcmp(token, "nomeClube") == 0) {
+                token = strtok(NULL, " \n");
+                strcpy(nomeClube, token);
             }
+            token = strtok(NULL, " \n");
+        }
+        while (fread(&registro, sizeof(registro), 1, arquivo)) {
+            if (atendeCritérios(&registro, id, idade, nomeJogador, nacionalidade, nomeClube)) {
+                printf("%d %d %s %s %s\n", registro.id, registro.idade, registro.nomeJogador, registro.nacionalidade, registro.nomeClube);
+            }
+        }
             else{
 		fseek(arquivo, -1, SEEK_CUR);
-                fseek(arquivo, registro.tamanhoRegistro, SEEK_CUR);
+        fseek(arquivo, registro.tamanhoRegistro, SEEK_CUR);
             }
     fclose(arquivo);
 }
 }
-
 
 int main(int argc, char* argv[]){
 
