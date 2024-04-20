@@ -1,0 +1,312 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include "funcoes_fornecidas.h"
+
+//Trabalho 1 - Organização de Arquivos
+//Alunos: Gabriel Hyppolito - 14571810, Juan Marques Jordão - 14758742
+
+typedef struct{
+    char status;
+    long int topo, proxByteOffset;
+    int nroRegArq, nroRegRem;
+}Cabecalho;
+
+typedef struct{
+    int id, idade, tamanhoRegistro, tamNomeJog, tamNacionalidade, tamNomeClube;
+    long int prox;
+    char removido, *nomeJogador, *nacionalidade, *nomeClube;
+}Registro;
+
+void inicializarCabecalho(Cabecalho *cabecalho){
+    cabecalho->status = '0';
+    cabecalho->topo = -1;
+    cabecalho->proxByteOffset = 0;
+    cabecalho->nroRegArq = 0;
+    cabecalho->nroRegRem = 0;
+}
+
+void escreverCabecalho(Cabecalho *cabecalho, FILE *arquivo){
+    fwrite(&cabecalho->status, sizeof(char), 1, arquivo);
+    fwrite(&cabecalho->topo, sizeof(long int), 1, arquivo);
+    fwrite(&cabecalho->proxByteOffset, sizeof(long int), 1, arquivo);
+    fwrite(&cabecalho->nroRegArq, sizeof(int), 1, arquivo);
+    fwrite(&cabecalho->nroRegRem, sizeof(int), 1, arquivo);
+}
+
+void lerRegistro(Registro *registro, FILE *arquivo){
+    fread(&registro->tamanhoRegistro, sizeof(int), 1, arquivo);
+    fread(&registro->prox, sizeof(long int), 1, arquivo);
+    fread(&registro->id, sizeof(int), 1, arquivo);
+    fread(&registro->idade, sizeof(int), 1, arquivo);
+    fread(&registro->tamNomeJog, sizeof(int), 1, arquivo);
+    //registro->nomeJogador = lerString(arquivo, registro->tamNomeJog); //strcpy please
+    fread(&registro->tamNacionalidade, sizeof(int), 1, arquivo);
+    //registro->nacionalidade = lerString(arquivo, registro->tamNacionalidade);
+    fread(&registro->tamNomeClube, sizeof(int), 1, arquivo);
+    //registro->nomeClube = lerString(arquivo, registro->tamNomeClube);
+}
+
+void escreverRegistro(Registro *registro, FILE *arquivo){
+    fwrite(&registro->removido, sizeof(char), 1, arquivo);
+    fwrite(&registro->tamanhoRegistro, sizeof(int), 1, arquivo);
+    fwrite(&registro->prox, sizeof(long int), 1, arquivo);
+    fwrite(&registro->id, sizeof(int), 1, arquivo);
+    fwrite(&registro->idade, sizeof(int), 1, arquivo);
+    fwrite(&registro->tamNomeJog, sizeof(int), 1, arquivo);
+    fwrite(registro->nomeJogador, registro->tamNomeJog, 1, arquivo);
+    fwrite(&registro->tamNacionalidade, sizeof(int), 1, arquivo);
+    fwrite(registro->nacionalidade, registro->tamNacionalidade, 1, arquivo);
+    fwrite(&registro->tamNomeClube, sizeof(int), 1, arquivo);
+    fwrite(registro->nomeClube, registro->tamNomeClube, 1, arquivo);
+}
+
+int preencheCampoFixo(char *campo){
+    if(strlen(campo) == 0){
+        return -1;
+    }
+    else{
+        return atoi(campo);
+    }
+}
+
+void createTable(char *entrada, char *saida){
+
+    FILE *arquivoEntrada = fopen(entrada, "r");
+    if(arquivoEntrada == NULL){
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arquivoEntrada);//fechar caso de merda
+        exit(1);
+    }
+    FILE *arquivoSaida = fopen(saida, "wb");
+    if(arquivoSaida == NULL){
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arquivoEntrada);//fechar caso de merda
+        exit(1);
+    }
+    Cabecalho cabecalho;
+    Registro registro;
+    inicializarCabecalho(&cabecalho);
+
+    char buffer[45];
+    fread(buffer, sizeof(char), 45, arquivoEntrada);//limpar primeira linha inutilizavel pro código
+
+    char teste[300], linha[300], c;//aumentei só pra ver se n é o motivo do segfault, provalmente pode ser o problema, n dar clear na linha a cada interação
+
+    while(!feof(arquivoEntrada)){//debugar se os campos estão lidos corretamente pelo codigo
+
+        printf("b");
+
+        int i=0, j=0;//seta para 0
+
+        while((c = fgetc(arquivoEntrada)) != '\n'){
+            linha[i] = c;
+            i++;
+        }
+        linha[i] = '\0';//pra que percorrer linha até o final do arquivo e dps setar pra 0
+        i=0;//seta de novo pra 0
+
+        //extraindo o id do jogador
+        while(linha[i] != ','){
+            teste[j] = linha[i];
+            i++;
+            j++;
+        }
+        teste[j] = '\0';
+        registro.id = preencheCampoFixo(teste);
+        i++; j=0;
+
+        //extraindo a idade do jogador
+        while(linha[i] != ','){
+            teste[j] = linha[i];
+            i++;
+            j++;
+        }
+        teste[j] = '\0';
+        registro.idade = preencheCampoFixo(teste);
+        i++; j=0;
+
+        //extraindo o nome do jogador
+        while(linha[i] != ','){
+            teste[j] = linha[i];
+            i++;
+            j++;
+        }
+        teste[j] = '\0';
+        registro.tamNomeJog = strlen(teste);
+        if(registro.tamNomeJog == 0){
+            registro.nomeJogador = NULL;
+        }else{
+            registro.nomeJogador = (char *)malloc((registro.tamNomeJog + 1) * sizeof(char));
+            strcpy(registro.nomeJogador, teste);
+        }
+        i++; j=0;
+
+        //extraindo a nacionalidade do jogador
+        while(linha[i] != ','){
+            teste[j] = linha[i];
+            i++;
+            j++;
+        }
+        teste[j] = '\0';
+        registro.tamNacionalidade = strlen(teste);
+        if(registro.tamNacionalidade == 0){
+            registro.nacionalidade = NULL;
+        }else{
+            registro.nacionalidade = (char *)malloc((registro.tamNacionalidade + 1) * sizeof(char));
+            strcpy(registro.nacionalidade, teste);
+        }
+        i++; j=0;
+
+        //extraindo o nome do clube do jogador
+        while(linha[i] != '\0'){
+            teste[j] = linha[i];
+            j++;
+            i++;
+        }
+        teste[j] = '\0';
+        registro.tamNomeClube = strlen(teste);
+        if(registro.tamNomeClube == 0){
+            registro.nomeClube = NULL;
+        }else{
+            registro.nomeClube = (char *)malloc((registro.tamNomeClube + 1) * sizeof(char));
+            strcpy(registro.nomeClube, teste);
+        }
+        
+        //definicao campos registro
+        registro.removido = '0';
+        registro.prox = -1;
+        registro.tamanhoRegistro = sizeof(int)*6 + sizeof(long int) + sizeof(char)*(registro.tamNomeJog + 
+                                    registro.tamNacionalidade + registro.tamNomeClube + 1);//debugar tamanho do registro
+        
+        escreverRegistro(&registro, arquivoSaida);
+        cabecalho.nroRegArq++; //incrementa o numero de registros no arquivo
+
+        //liberando memoria alocada para os campos variaveis
+        free(registro.nomeJogador); free(registro.nacionalidade); free(registro.nomeClube);
+        registro.nomeJogador = NULL; registro.nacionalidade = NULL; registro.nomeClube = NULL; //legal fazer uma função de liberar memoria
+    }
+
+    printf("c");
+    cabecalho.status = '1';
+    cabecalho.proxByteOffset = ftell(arquivoSaida);
+    fseek(arquivoSaida, 0, SEEK_SET);
+    escreverCabecalho(&cabecalho, arquivoSaida);
+
+    fclose(arquivoEntrada);
+    fclose(arquivoSaida);
+
+    binarioNaTela(saida);
+    printf("chegou");
+}
+
+void selectFrom(char* arq){
+    FILE *arquivo = fopen(arq, "rb");
+    if(arquivo == NULL){
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arquivo);
+        exit(1);
+    }
+    //criar registro e ler
+    while(!feof(arquivo)){
+        if(registro.removido != '1'){
+            //imprimir o registro
+        }
+    }
+    //free no registro
+    fclose(arquivo);
+}
+void selectWhere(char arqBin, int n){
+
+    FILE* arquivo = fopen(arqBin, "rb");
+     if(arquivo == NULL){
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arquivo);
+        exit(1);
+    }
+    for(int i = 0;i< n;i++){
+
+
+    int id = -1, idade = -1, parametros, achou = 0;
+    char nomeJogador[50] = "", nacionalidade[50] = "", nomeClube[50] = "";
+    scanf("%d", &parametros);
+        for (int j = 0; j < parametros; j++) {
+            char busca[255];
+            fgets(busca, 255, stdin);
+            char *token = strtok(busca, " \n");
+            while (token != NULL) {
+                if (strcmp(token, "id") == 0) {
+                    token = strtok(NULL, " \n");
+                    id = atoi(token);
+                } else if (strcmp(token, "idade") == 0) {
+                    token = strtok(NULL, " \n");
+                    idade = atoi(token);
+                } else if (strcmp(token, "nomeJogador") == 0) {
+                    token = strtok(NULL, " \n");
+                    strcpy(nomeJogador, token);
+                } else if (strcmp(token, "nacionalidade") == 0) {
+                    token = strtok(NULL, " \n");
+                    strcpy(nacionalidade, token);
+                } else if (strcmp(token, "nomeClube") == 0) {
+                    token = strtok(NULL, " \n");
+                    strcpy(nomeClube, token);
+                }
+                token = strtok(NULL, " \n");
+            }
+        }
+        while(!feof(arquivo)){
+            Registro* registro;
+            lerRegistro(registro, arquivo);
+            int valido = 0;
+            if(id != -1 && registro->id == id){
+                valido = 1;
+            }
+            if(idade != -1 && registro->idade == idade){
+                valido = 1;
+            }
+            if(strcmp(nomeJogador, "") != 0 && strcmp(registro->nomeJogador, nomeJogador) == 0){
+                valido = 1;
+            }
+            if(strcmp(nacionalidade, "") != 0 && strcmp(registro->nacionalidade, nacionalidade) == 0){
+                valido = 1;
+            }
+            if(strcmp(nomeClube, "") != 0 && strcmp(registro->nomeClube, nomeClube) == 0){
+                valido = 1;
+            }
+            if((registro->removido != '1') && valido == 0){
+                //imprimir registro
+                achou = 1;
+            }
+        }
+        if(achou == 0){
+            printf("registro inexistente.\n\n");
+        }
+    }
+    fclose(arquivo);
+}
+
+int main(){
+
+    char arg1[30], arg2[30];
+    int op=0, n=0;
+
+    scanf("%d", &op);
+
+    if((op ==1) || (op == 3)){
+        scanf("%s %s", arg1, arg2);
+    }else if(op == 2){
+        scanf("%s", arg1);
+    }
+
+    if(op == 1){
+        createTable(arg1, arg2);
+    }else if(op == 3){
+        n = atoi(arg2);
+        //select_where(arg1, n);
+    }else if(op == 2){
+        //select_from(arg1);
+    }
+
+    return 0;
+}
